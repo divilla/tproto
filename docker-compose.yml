@@ -1,0 +1,56 @@
+version: '3.3'
+services:
+  client:
+    container_name: eop09-client
+    build:
+      context: .
+      dockerfile: client/cmd/docker/Dockerfile
+    volumes:
+      - eop09-client-tmp:/var/log/app
+    ports:
+      - "8080:8080"
+    environment:
+      - APP_ENV=prod
+      - APP_PORT=8080
+      - APP_RPC=server:8080
+    healthcheck:
+      test: curl -f http://localhost:8080/healthcheck || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      - server
+  server:
+    container_name: eop09-server
+    build:
+      context: .
+      dockerfile: server/cmd/docker/Dockerfile
+    volumes:
+      - eop09-server-tmp:/var/log/app
+    environment:
+      - APP_ENV=prod
+      - APP_PORT=8080
+      - APP_DSN=mongodb://admin:Masa1818@db:27017/?authSource=admin
+    depends_on:
+      - db
+  db:
+    image: "mongo:4.4.8"
+    container_name: eop09-db
+    volumes: 
+      - eop09-mongo-db:/data/db
+      - eop90-mongo-config:/data/config
+    command: --serviceExecutor adaptive --wiredTigerCacheSizeGB 1
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: Masa1818
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongo localhost:27017/test --quiet
+      interval: 30s
+      timeout: 10s
+      retries: 3
+volumes:
+  eop09-mongo-db:
+  eop90-mongo-config:
+  eop09-server-tmp:
+  eop09-client-tmp:
